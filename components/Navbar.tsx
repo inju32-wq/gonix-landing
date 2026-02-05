@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Menu, X, Anchor, Globe } from 'lucide-react';
+import { Menu, X, Anchor } from 'lucide-react';
 import { useLanguage } from '../LanguageContext';
 
 export const Navbar: React.FC = () => {
