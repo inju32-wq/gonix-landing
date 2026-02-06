@@ -17,7 +17,7 @@ export const Footer: React.FC = () => {
       ],
       privacy: '개인정보 처리방침',
       terms: '이용 약관',
-      rights: '© 2024 Geonix Mining & Trading. All rights reserved.'
+      rights: '© 2026 Geonix Mining & Trading. All rights reserved.'
     },
     en: {
       items: [
