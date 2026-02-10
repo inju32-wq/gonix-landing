@@ -36,7 +36,6 @@ function escapeHtml(s: string) {
     .replace(/'/g, "&#039;");
 }
 
-
 function toBool(v?: string) {
   if (!v) return false;
   return ["true", "1", "yes", "y"].includes(v.toLowerCase());
@@ -74,9 +73,9 @@ function detectLang(input: string): "ko" | "en" | "both" {
 
   const hangulRatio = hangul / total;
 
-  if (hangulRatio >= 0.25) return "ko";     // 한글이 눈에 띄면 KO
-  if (hangulRatio <= 0.05) return "en";     // 거의 없으면 EN
-  return "both";                             // 애매하면 둘 다
+  if (hangulRatio >= 0.25) return "ko";
+  if (hangulRatio <= 0.05) return "en";
+  return "both";
 }
 
 function row(label: string, value: string) {
@@ -88,9 +87,19 @@ function row(label: string, value: string) {
   `;
 }
 
+/**
+ * Mailplug-style base template
+ * 요구 반영:
+ * - 상단 라인 색상: #f43e38
+ * - 상단 로고 텍스트 색상: #4A4A4A
+ * - 상단 제목(KO 타이틀) 색상: #4A4A4A
+ * - 하단 저작권(©) 위에도 상단과 동일한 라인(2px) 추가
+ */
 function buildMailplugStyleBase(params: {
-  brandText: string;     // 텍스트 로고
-  brandColor: string;
+  brandText: string; // 텍스트 로고
+  brandLineColor: string; // 상단/하단 라인
+  brandTextColor: string; // 상단 로고 텍스트
+  titleTextColor: string; // "문의사항 접수" 타이틀
   titleKo: string;
   titleEn: string;
   introKo: string;
@@ -98,13 +107,15 @@ function buildMailplugStyleBase(params: {
   tableRowsHtml: string;
   messageLabelKo: string;
   messageLabelEn: string;
-  messageHtml: string;   // 이미 escape + prewrap 적용된 영역
+  messageHtml: string;
   footerKo: string;
   footerEn: string;
 }) {
   const {
     brandText,
-    brandColor,
+    brandLineColor,
+    brandTextColor,
+    titleTextColor,
     titleKo,
     titleEn,
     introKo,
@@ -128,28 +139,34 @@ function buildMailplugStyleBase(params: {
             <!-- header -->
             <tr>
               <td style="padding:0 0 10px 0;">
-                <div style="font-family:Arial, sans-serif; font-size:20px; font-weight:800; color:${brandColor};">
+                <div style="font-family:Arial, sans-serif; font-size:20px; font-weight:800; color:${brandTextColor};">
                   ${escapeHtml(brandText)}
                 </div>
               </td>
             </tr>
 
-            <!-- thin line -->
-            <tr><td style="border-top:2px solid ${brandColor}; padding:0;"></td></tr>
+            <!-- thin line (TOP) -->
+            <tr><td style="border-top:2px solid ${brandLineColor}; padding:0;"></td></tr>
 
-            <!-- title (KO/EN both in header area for admin; for user we control via content) -->
+            <!-- title -->
             <tr>
               <td style="padding:22px 0 12px 0; font-family:Arial, sans-serif; text-align:center;">
-                <div style="font-size:18px; font-weight:800; color:${brandColor};">${escapeHtml(titleKo)}</div>
-                <div style="font-size:13px; font-weight:700; color:#666; margin-top:4px;">${escapeHtml(titleEn)}</div>
+                <div style="font-size:18px; font-weight:800; color:${titleTextColor};">${escapeHtml(titleKo)}</div>
+                ${
+                  titleEn
+                    ? `<div style="font-size:13px; font-weight:700; color:#666; margin-top:4px;">${escapeHtml(
+                        titleEn
+                      )}</div>`
+                    : ""
+                }
               </td>
             </tr>
 
             <!-- intro -->
             <tr>
               <td style="padding:0 0 14px 0; font-family:Arial, sans-serif; font-size:13px; color:#333; line-height:1.7;">
-                <div>${introKo}</div>
-                <div style="margin-top:8px; color:#444;">${introEn}</div>
+                ${introKo ? `<div>${introKo}</div>` : ""}
+                ${introEn ? `<div style="margin-top:8px; color:#444;">${introEn}</div>` : ""}
               </td>
             </tr>
 
@@ -169,7 +186,13 @@ function buildMailplugStyleBase(params: {
               <td style="padding:12px 0 0 0;">
                 <div style="font-family:Arial, sans-serif; font-size:13px; color:#333; padding:10px 0 6px 0; font-weight:800;">
                   ${escapeHtml(messageLabelKo)}
-                  <span style="font-weight:600; color:#666; margin-left:8px;">${escapeHtml(messageLabelEn)}</span>
+                  ${
+                    messageLabelEn
+                      ? `<span style="font-weight:600; color:#666; margin-left:8px;">${escapeHtml(
+                          messageLabelEn
+                        )}</span>`
+                      : ""
+                  }
                 </div>
                 <div style="border:1px solid #e6e6e6; background:#fafafa; padding:12px; font-family:Arial, sans-serif; font-size:13px; color:#333; line-height:1.7;">
                   ${messageHtml}
@@ -180,12 +203,17 @@ function buildMailplugStyleBase(params: {
             <!-- footer -->
             <tr>
               <td style="padding:16px 0 0 0; font-family:Arial, sans-serif; font-size:12px; color:#777; line-height:1.6;">
-                <div>${footerKo}</div>
-                <div style="margin-top:6px;">${footerEn}</div>
+                ${footerKo ? `<div>${footerKo}</div>` : ""}
+                ${footerEn ? `<div style="margin-top:6px;">${footerEn}</div>` : ""}
               </td>
             </tr>
 
+            <!-- divider -->
             <tr><td style="padding:18px 0 0 0; border-top:1px solid #efefef;"></td></tr>
+
+            <!-- thin line (BOTTOM, above copyright) -->
+            <tr><td style="border-top:2px solid ${brandLineColor}; padding:0;"></td></tr>
+
             <tr>
               <td style="padding:10px 0 0 0; font-family:Arial, sans-serif; font-size:11px; color:#999;">
                 © ${new Date().getFullYear()} ${escapeHtml(brandText)}. All rights reserved.
@@ -203,7 +231,9 @@ function buildMailplugStyleBase(params: {
 
 function buildAdminHtml(params: {
   brandText: string;
-  brandColor: string;
+  brandLineColor: string;
+  brandTextColor: string;
+  titleTextColor: string;
   ticket: string;
   submittedAt: string;
   name: string;
@@ -213,7 +243,20 @@ function buildAdminHtml(params: {
   website?: string;
   message: string;
 }) {
-  const { brandText, brandColor, ticket, submittedAt, name, email, company, phone, website, message } = params;
+  const {
+    brandText,
+    brandLineColor,
+    brandTextColor,
+    titleTextColor,
+    ticket,
+    submittedAt,
+    name,
+    email,
+    company,
+    phone,
+    website,
+    message,
+  } = params;
 
   const rowsHtml = [
     row("접수번호 / Ticket", ticket),
@@ -229,11 +272,15 @@ function buildAdminHtml(params: {
 
   return buildMailplugStyleBase({
     brandText,
-    brandColor,
+    brandLineColor,
+    brandTextColor,
+    titleTextColor,
     titleKo: "문의사항 접수 (관리자)",
     titleEn: "New inquiry received (Admin)",
-    introKo: `아래 내용으로 문의가 접수되었습니다. (답장은 ReplyTo로 사용자에게 연결됩니다.)`,
-    introEn: `A new inquiry has been received. (Reply will go to the user via Reply-To.)`,
+    introKo:
+      "아래 내용으로 문의가 접수되었습니다. (답장은 Reply-To로 사용자에게 연결됩니다.)",
+    introEn:
+      "A new inquiry has been received. (Reply will go to the user via Reply-To.)",
     tableRowsHtml: rowsHtml,
     messageLabelKo: "문의 내용",
     messageLabelEn: "Message",
@@ -245,7 +292,9 @@ function buildAdminHtml(params: {
 
 function buildUserHtml(params: {
   brandText: string;
-  brandColor: string;
+  brandLineColor: string;
+  brandTextColor: string;
+  titleTextColor: string;
   lang: "ko" | "en" | "both";
   ticket: string;
   submittedAt: string;
@@ -254,22 +303,45 @@ function buildUserHtml(params: {
   phone?: string;
   summary: string;
 }) {
-  const { brandText, brandColor, lang, ticket, submittedAt, name, company, phone, summary } = params;
+  const {
+    brandText,
+    brandLineColor,
+    brandTextColor,
+    titleTextColor,
+    lang,
+    ticket,
+    submittedAt,
+    name,
+    company,
+    phone,
+    summary,
+  } = params;
 
-  const rowsHtml = [
-    row(lang === "en" ? "Ticket" : "접수번호 / Ticket", ticket),
-    row(lang === "en" ? "Name" : "이름 / Name", name),
-    row(lang === "en" ? "Submitted at" : "문의 접수일 / Submitted at", submittedAt),
-    row(lang === "en" ? "Company" : "회사 / Company", company || "-"),
-    row(lang === "en" ? "Phone" : "연락처 / Phone", phone || "-"),
-  ].join("");
+  const rowsHtml =
+    lang === "en"
+      ? [
+          row("Ticket", ticket),
+          row("Name", name),
+          row("Submitted at", `${submittedAt} (KST)`),
+          row("Company", company || "-"),
+          row("Phone", phone || "-"),
+        ].join("")
+      : [
+          row("접수번호 / Ticket", ticket),
+          row("이름 / Name", name),
+          row("문의 접수일 / Submitted at", submittedAt),
+          row("회사 / Company", company || "-"),
+          row("연락처 / Phone", phone || "-"),
+        ].join("");
 
   const messageHtml = `<div style="white-space:pre-wrap;">${escapeHtml(summary)}</div>`;
 
   if (lang === "ko") {
     return buildMailplugStyleBase({
       brandText,
-      brandColor,
+      brandLineColor,
+      brandTextColor,
+      titleTextColor,
       titleKo: "문의사항 접수",
       titleEn: "",
       introKo: `안녕하세요. <b>${escapeHtml(brandText)}</b>입니다.<br/>문의가 정상적으로 접수되었습니다. 아래 내용으로 확인 부탁드립니다.`,
@@ -278,7 +350,8 @@ function buildUserHtml(params: {
       messageLabelKo: "접수 내용(요약)",
       messageLabelEn: "",
       messageHtml,
-      footerKo: "※ 본 메일은 발신전용입니다. 회신이 필요한 경우, 홈페이지 문의를 다시 작성해 주세요.",
+      footerKo:
+        "※ 본 메일은 발신전용입니다. 회신이 필요한 경우, 홈페이지 문의를 다시 작성해 주세요.",
       footerEn: "",
     });
   }
@@ -286,7 +359,9 @@ function buildUserHtml(params: {
   if (lang === "en") {
     return buildMailplugStyleBase({
       brandText,
-      brandColor,
+      brandLineColor,
+      brandTextColor,
+      titleTextColor,
       titleKo: "We’ve received your inquiry",
       titleEn: "",
       introKo: `Hello <b>${escapeHtml(name)}</b>,<br/>We’ve received your inquiry successfully. Please find the details below.`,
@@ -295,7 +370,8 @@ function buildUserHtml(params: {
       messageLabelKo: "Message (summary)",
       messageLabelEn: "",
       messageHtml,
-      footerKo: "※ This email is sent from a no-reply address. If you need assistance, please submit the inquiry again via our website.",
+      footerKo:
+        "※ This email is sent from a no-reply address. If you need assistance, please submit the inquiry again via our website.",
       footerEn: "",
     });
   }
@@ -303,7 +379,9 @@ function buildUserHtml(params: {
   // both
   return buildMailplugStyleBase({
     brandText,
-    brandColor,
+    brandLineColor,
+    brandTextColor,
+    titleTextColor,
     titleKo: "문의사항 접수",
     titleEn: "We’ve received your inquiry",
     introKo: `안녕하세요. <b>${escapeHtml(brandText)}</b>입니다.<br/>문의가 정상적으로 접수되었습니다. 아래 내용으로 확인 부탁드립니다.`,
@@ -312,8 +390,10 @@ function buildUserHtml(params: {
     messageLabelKo: "접수 내용(요약)",
     messageLabelEn: "Message (summary)",
     messageHtml,
-    footerKo: "※ 본 메일은 발신전용입니다. 회신이 필요한 경우, 홈페이지 문의를 다시 작성해 주세요.",
-    footerEn: "※ This email is sent from a no-reply address. If you need assistance, please submit the inquiry again via our website.",
+    footerKo:
+      "※ 본 메일은 발신전용입니다. 회신이 필요한 경우, 홈페이지 문의를 다시 작성해 주세요.",
+    footerEn:
+      "※ This email is sent from a no-reply address. If you need assistance, please submit the inquiry again via our website.",
   });
 }
 
@@ -391,8 +471,12 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
     const ticket = makeTicket("GEONIX");
     const submittedAt = formatKST(new Date());
+
+    // ✅ 스타일 요구 반영
     const brandText = "geonix";
-    const brandColor = "#ff6a00"; // 예시(메일플러그 느낌). 원하면 GEONIX 메인 컬러로 교체
+    const brandLineColor = "#f43e38"; // 라인 색상 변경
+    const brandTextColor = "#4A4A4A"; // 상단 로고 텍스트 색상 변경
+    const titleTextColor = "#4A4A4A"; // 상단 타이틀(문의사항 접수) 색상 변경
 
     // 관리자 메일 (HTML + text)
     const adminSubject = `[GEONIX][CONTACT][TICKET:${ticket}] ${safeName} <${safeEmail}>`;
@@ -402,9 +486,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       "",
       `Name: ${name}`,
       `Email: ${email}`,
-      company ? `Company: ${company}` : "Company: -",
-      phone ? `Phone: ${phone}` : "Phone: -",
-      website ? `Website: ${website}` : "Website: -",
+      `Company: ${company || "-"}`,
+      `Phone: ${phone || "-"}`,
+      `Website: ${website || "-"}`,
       "",
       "Message:",
       message,
@@ -412,7 +496,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
     const adminHtml = buildAdminHtml({
       brandText,
-      brandColor,
+      brandLineColor,
+      brandTextColor,
+      titleTextColor,
       ticket,
       submittedAt,
       name,
@@ -432,7 +518,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       html: adminHtml,
     });
 
-    // 사용자 자동회신 (언어 감지)
+    // 사용자 자동회신
     const lang = detectLang(`${name} ${company} ${message}`);
     const summary = message.length > 400 ? `${message.slice(0, 400)}...` : message;
 
@@ -440,8 +526,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       lang === "en"
         ? `We’ve received your inquiry (Ticket: ${ticket})`
         : lang === "ko"
-          ? `문의가 접수되었습니다 (접수번호: ${ticket})`
-          : `문의가 접수되었습니다 / We’ve received your inquiry (Ticket: ${ticket})`;
+        ? `문의가 접수되었습니다 (접수번호: ${ticket})`
+        : `문의가 접수되었습니다 / We’ve received your inquiry (Ticket: ${ticket})`;
 
     const userTextKo = [
       `안녕하세요 ${name}님,`,
@@ -478,7 +564,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
     const userHtml = buildUserHtml({
       brandText,
-      brandColor,
+      brandLineColor,
+      brandTextColor,
+      titleTextColor,
       lang,
       ticket,
       submittedAt,
@@ -491,7 +579,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     await transporter.sendMail({
       from: `"geonix" <${user}>`,
       to: email,
-      replyTo: to, // 사용자가 회신하면 관리자에게
+      replyTo: to,
       subject: userSubject,
       text: userText,
       html: userHtml,
