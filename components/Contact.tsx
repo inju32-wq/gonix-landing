@@ -107,9 +107,10 @@ export const Contact: React.FC = () => {
         body: JSON.stringify({
           name,
           email,
-          message: composedMessage, // 서버는 message만 메일 본문에 넣어줌
+          message: details, // 서버는 message만 메일 본문에 넣어줌
           company,
           website: '',
+          phone,
           hp,
         }),
       });
