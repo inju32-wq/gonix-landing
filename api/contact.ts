@@ -54,11 +54,13 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       return;
     }
 
+    // ✅ 프론트는 message에 "문의내용(details)"만 보내는 것을 전제로 함
     const name = String(body?.name || "").trim();
     const email = String(body?.email || "").trim();
-    const message = String(body?.message || "").trim();
+    const message = String(body?.message || "").trim(); // details
     const company = String(body?.company || "").trim();
     const website = String(body?.website || "").trim();
+    const phone = String(body?.phone || "").trim(); // ✅ 추가
 
     if (!name || !email || !message) {
       res.status(400).json({ ok: false, error: "missing_fields" });
@@ -68,7 +70,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       res.status(400).json({ ok: false, error: "invalid_email" });
       return;
     }
-    if (name.length > 80 || company.length > 120 || website.length > 200) {
+    if (name.length > 80 || company.length > 120 || website.length > 200 || phone.length > 80) {
       res.status(400).json({ ok: false, error: "field_too_long" });
       return;
     }
@@ -101,23 +103,26 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
     await transporter.sendMail({
       from: `"Website Contact" <${user}>`, // 발송 계정 = MAIL_USER
-      to,                                  // 수신자 = MAIL_TO
-      replyTo: email,                      // 답장은 사용자에게
+      to, // 수신자 = MAIL_TO
+      replyTo: email, // 답장은 사용자에게
       subject: `[GEONIX 웹문의] ${safeName} (${safeEmail})`,
       text: [
         `Name: ${name}`,
         `Email: ${email}`,
         company ? `Company: ${company}` : "",
+        phone ? `Phone: ${phone}` : "",
         website ? `Website: ${website}` : "",
         "",
         "Message:",
         message,
-      ].filter(Boolean).join("\n"),
+      ]
+        .filter(Boolean)
+        .join("\n"),
     });
 
     res.status(200).json({ ok: true });
   } catch (e: any) {
-  console.error("CONTACT_API_ERROR:", e?.message || e);
-  return res.status(500).json({ ok: false, error: "send_failed" });
+    console.error("CONTACT_API_ERROR:", e?.message || e);
+    return res.status(500).json({ ok: false, error: "send_failed" });
   }
 }
