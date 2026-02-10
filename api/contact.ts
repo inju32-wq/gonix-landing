@@ -46,11 +46,11 @@ function makeTicket(prefix = "GEONIX") {
   const y = d.getFullYear();
   const m = String(d.getMonth() + 1).padStart(2, "0");
   const day = String(d.getDate()).padStart(2, "0");
-  const rand = Math.random().toString(36).slice(2, 8).toUpperCase(); // 6 chars
+  const rand = Math.random().toString(36).slice(2, 8).toUpperCase();
   return `${prefix}-${y}${m}${day}-${rand}`;
 }
 
-// 서버리스가 UTC일 수 있어서 표시만 KST로 보이게(간단 KST)
+// 표시만 KST로 보이게(간단 KST)
 function formatKST(dt = new Date()) {
   const kst = new Date(dt.getTime() + 9 * 60 * 60 * 1000);
   const y = kst.getUTCFullYear();
@@ -62,7 +62,7 @@ function formatKST(dt = new Date()) {
   return `${y}-${m}-${d} ${hh}:${mm}:${ss}`;
 }
 
-// 아주 간단한 언어 감지: 한글 비율로 KO/EN/BOTH
+// 언어 감지: 한글 비율로 KO/EN/BOTH
 function detectLang(input: string): "ko" | "en" | "both" {
   const s = (input || "").trim();
   if (!s) return "both";
@@ -72,34 +72,37 @@ function detectLang(input: string): "ko" | "en" | "both" {
   if (total === 0) return "both";
 
   const hangulRatio = hangul / total;
-
   if (hangulRatio >= 0.25) return "ko";
   if (hangulRatio <= 0.05) return "en";
   return "both";
 }
 
 function row(label: string, value: string) {
+  // ✅ 라벨 한 줄 유지 + 폭 확대(문의 접수일/Submitted at 같은 긴 라벨용)
+  const labelStyle =
+    "padding:10px 0; width:170px; color:#666; border-bottom:1px solid #efefef; white-space:nowrap;";
+  const valueStyle = "padding:10px 0; color:#111; border-bottom:1px solid #efefef;";
+
   return `
     <tr>
-      <td style="padding:10px 0; width:140px; color:#666; border-bottom:1px solid #efefef;">${escapeHtml(label)}</td>
-      <td style="padding:10px 0; color:#111; border-bottom:1px solid #efefef;">${escapeHtml(value)}</td>
+      <td style="${labelStyle}">${escapeHtml(label)}</td>
+      <td style="${valueStyle}">${escapeHtml(value)}</td>
     </tr>
   `;
 }
 
 /**
- * Mailplug-style base template
- * 요구 반영:
- * - 상단 라인 색상: #f43e38
+ * 공통 템플릿
+ * - 라인 색상: #f43e38
  * - 상단 로고 텍스트 색상: #4A4A4A
- * - 상단 제목(KO 타이틀) 색상: #4A4A4A
- * - 하단 저작권(©) 위에도 상단과 동일한 라인(2px) 추가
+ * - 상단 타이틀(문의사항 접수) 색상: #4A4A4A
+ * - 하단 저작권 위에도 동일 라인(2px) 추가
  */
 function buildMailplugStyleBase(params: {
-  brandText: string; // 텍스트 로고
-  brandLineColor: string; // 상단/하단 라인
-  brandTextColor: string; // 상단 로고 텍스트
-  titleTextColor: string; // "문의사항 접수" 타이틀
+  brandText: string;
+  brandLineColor: string;
+  brandTextColor: string;
+  titleTextColor: string;
   titleKo: string;
   titleEn: string;
   introKo: string;
@@ -145,7 +148,7 @@ function buildMailplugStyleBase(params: {
               </td>
             </tr>
 
-            <!-- thin line (TOP) -->
+            <!-- top line -->
             <tr><td style="border-top:2px solid ${brandLineColor}; padding:0;"></td></tr>
 
             <!-- title -->
@@ -208,10 +211,9 @@ function buildMailplugStyleBase(params: {
               </td>
             </tr>
 
-            <!-- divider -->
             <tr><td style="padding:18px 0 0 0; border-top:1px solid #efefef;"></td></tr>
 
-            <!-- thin line (BOTTOM, above copyright) -->
+            <!-- bottom line (above copyright) -->
             <tr><td style="border-top:2px solid ${brandLineColor}; padding:0;"></td></tr>
 
             <tr>
@@ -240,7 +242,7 @@ function buildAdminHtml(params: {
   email: string;
   company?: string;
   phone?: string;
-  website?: string;
+  // ✅ website 제거됨
   message: string;
 }) {
   const {
@@ -254,7 +256,6 @@ function buildAdminHtml(params: {
     email,
     company,
     phone,
-    website,
     message,
   } = params;
 
@@ -264,7 +265,6 @@ function buildAdminHtml(params: {
     row("이메일 / Email", email),
     row("회사 / Company", company || "-"),
     row("연락처 / Phone", phone || "-"),
-    row("Website", website || "-"),
     row("문의 접수일 / Submitted at", submittedAt),
   ].join("");
 
@@ -277,10 +277,8 @@ function buildAdminHtml(params: {
     titleTextColor,
     titleKo: "문의사항 접수 (관리자)",
     titleEn: "New inquiry received (Admin)",
-    introKo:
-      "아래 내용으로 문의가 접수되었습니다. (답장은 Reply-To로 사용자에게 연결됩니다.)",
-    introEn:
-      "A new inquiry has been received. (Reply will go to the user via Reply-To.)",
+    introKo: "아래 내용으로 문의가 접수되었습니다. (답장은 Reply-To로 사용자에게 연결됩니다.)",
+    introEn: "A new inquiry has been received. (Reply will go to the user via Reply-To.)",
     tableRowsHtml: rowsHtml,
     messageLabelKo: "문의 내용",
     messageLabelEn: "Message",
@@ -350,8 +348,7 @@ function buildUserHtml(params: {
       messageLabelKo: "접수 내용(요약)",
       messageLabelEn: "",
       messageHtml,
-      footerKo:
-        "※ 본 메일은 발신전용입니다. 회신이 필요한 경우, 홈페이지 문의를 다시 작성해 주세요.",
+      footerKo: "※ 본 메일은 발신전용입니다. 회신이 필요한 경우, 홈페이지 문의를 다시 작성해 주세요.",
       footerEn: "",
     });
   }
@@ -390,8 +387,7 @@ function buildUserHtml(params: {
     messageLabelKo: "접수 내용(요약)",
     messageLabelEn: "Message (summary)",
     messageHtml,
-    footerKo:
-      "※ 본 메일은 발신전용입니다. 회신이 필요한 경우, 홈페이지 문의를 다시 작성해 주세요.",
+    footerKo: "※ 본 메일은 발신전용입니다. 회신이 필요한 경우, 홈페이지 문의를 다시 작성해 주세요.",
     footerEn:
       "※ This email is sent from a no-reply address. If you need assistance, please submit the inquiry again via our website.",
   });
@@ -427,7 +423,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     const email = String(body?.email || "").trim();
     const message = String(body?.message || "").trim();
     const company = String(body?.company || "").trim();
-    const website = String(body?.website || "").trim();
+    const website = String(body?.website || "").trim(); // ✅ 수집은 하되, 관리자메일/표에서는 미사용
     const phone = String(body?.phone || "").trim();
 
     if (!name || !email || !message) {
@@ -472,14 +468,16 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     const ticket = makeTicket("GEONIX");
     const submittedAt = formatKST(new Date());
 
-    // ✅ 스타일 요구 반영
-    const brandText = "geonix";
-    const brandLineColor = "#f43e38"; // 라인 색상 변경
-    const brandTextColor = "#4A4A4A"; // 상단 로고 텍스트 색상 변경
-    const titleTextColor = "#4A4A4A"; // 상단 타이틀(문의사항 접수) 색상 변경
+    // ✅ 스타일 공통
+    const brandText = "GEONIX";      // (공통) 상단 로고 텍스트
+    const brandLineColor = "#f43e38";
+    const brandTextColor = "#4A4A4A";
+    const titleTextColor = "#4A4A4A";
 
-    // 관리자 메일 (HTML + text)
-    const adminSubject = `[GEONIX][CONTACT][TICKET:${ticket}] ${safeName} <${safeEmail}>`;
+    // 1) 관리자 메일
+    // (1) 제목에서 [GEONIX][CONTACT] 접두어 제거 → ticket + name/email 중심으로
+    const adminSubject = `TICKET:${ticket} | ${safeName} <${safeEmail}>`;
+
     const adminText = [
       `[접수번호] ${ticket}`,
       `SubmittedAt: ${submittedAt}`,
@@ -488,7 +486,6 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       `Email: ${email}`,
       `Company: ${company || "-"}`,
       `Phone: ${phone || "-"}`,
-      `Website: ${website || "-"}`,
       "",
       "Message:",
       message,
@@ -505,7 +502,6 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       email,
       company,
       phone,
-      website,
       message,
     });
 
@@ -518,10 +514,11 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       html: adminHtml,
     });
 
-    // 사용자 자동회신
+    // 2) 사용자 자동회신
     const lang = detectLang(`${name} ${company} ${message}`);
     const summary = message.length > 400 ? `${message.slice(0, 400)}...` : message;
 
+    // (2) 제목도 한/영 비율(감지 결과)에 맞춰서 분기
     const userSubject =
       lang === "en"
         ? `We’ve received your inquiry (Ticket: ${ticket})`
@@ -577,7 +574,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     });
 
     await transporter.sendMail({
-      from: `"geonix" <${user}>`,
+      // (1) From 표시 이름 'geonix' → 'GEONIX'
+      from: `"GEONIX" <${user}>`,
       to: email,
       replyTo: to,
       subject: userSubject,
